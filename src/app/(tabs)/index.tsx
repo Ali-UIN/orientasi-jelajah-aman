@@ -22,7 +22,6 @@ export default function HalamanUtama() {
   }
   return (
     <SafeAreaView style={{ flex: 1, padding: isTablet ? 32 : 16, gap: 16 }}>
-      {" "}
       <SearchBox onCari={handleCari} />
       <WeatherCard kota={kotaAktif} suhu={29} tingkatAQI="BAIK" />
       <RiwayatList daftarKota={riwayat} />

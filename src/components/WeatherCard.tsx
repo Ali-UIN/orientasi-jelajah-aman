@@ -24,7 +24,7 @@ export default function WeatherCard({
       {/* 3. Ganti angka fontSize menjadi typeScale */}
       <Text style={{ fontWeight: "bold", fontSize: typeScale.judul }}>
         {kota}
-      </Text>{" "}
+      </Text>
       <Text style={{ fontSize: 32 }}>{suhu}°C</Text>
       <Text style={{ color: warnaAQI, fontSize: typeScale.isi }}>
         AQI: {tingkatAQI}
