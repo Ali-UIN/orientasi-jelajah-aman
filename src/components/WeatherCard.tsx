@@ -1,8 +1,8 @@
 // components/WeatherCard.tsx
 import { Text, View } from "react-native";
 import { WeatherCardProps } from "../../types/cuaca";
-// 1. Tambahkan baris import ini untuk memanggil variabel dari styles.ts 
-import { typeScale, spacing } from "../constants/styles";
+// 1. Tambahkan baris import ini untuk memanggil variabel dari styles.ts
+import { spacing, typeScale } from "../constants/styles";
 
 export default function WeatherCard({
   kota,
@@ -13,6 +13,8 @@ export default function WeatherCard({
   return (
     // 2. Ganti angka padding menjadi spacing.sedang
     <View
+      accessible
+      accessibilityLabel={`Cuaca ${kota}, suhu ${suhu} derajat, kualitas udara  ${tingkatAQI}`}
       style={{
         padding: spacing.sedang,
         borderRadius: 8,
