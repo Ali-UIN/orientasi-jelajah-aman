@@ -7,6 +7,7 @@ export default function Layout() {
             <Tabs.Screen name="index" options={{ title: 'Beranda' }} />
             <Tabs.Screen name="riwayat" options={{ title: 'Riwayat' }} />
             <Tabs.Screen name="pengaturan" options={{ title: 'Pengaturan' }} />
+            <Tabs.Screen name="tentang" options={{ title: 'Tentang' }} />
         </Tabs>
     );
 }
