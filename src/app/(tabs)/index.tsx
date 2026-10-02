@@ -82,6 +82,8 @@ export default function HalamanUtama() {
         <WeatherCard
           kota={kotaTerpilih.name}
           suhu={cuaca.saatIni.suhu}
+          suhuMaksimal={cuaca.harian.suhuMaksimal[0]}
+          suhuMinimal={cuaca.harian.suhuMinimal[0]}
           tingkatAQI={konversiTingkatAQI(kualitasUdara.indeksAQI)}
           indeksAQI={kualitasUdara.indeksAQI}
         />
@@ -90,6 +92,11 @@ export default function HalamanUtama() {
         <Text style={{ fontSize: 12, color: "#888" }}>
           Kondisi: {labelKodeCuaca(cuaca.saatIni.kodeCuaca)} • Angin
           {cuaca.saatIni.kecepatanAngin} km/j
+        </Text>
+      )}
+      {kualitasUdara && (
+        <Text style={{ fontSize: 12, color: "#888" }}>
+          PM2.5: {kualitasUdara.pm25} µg/m³ | PM10: {kualitasUdara.pm10} µg/m³
         </Text>
       )}
       <AtribusiCuaca />

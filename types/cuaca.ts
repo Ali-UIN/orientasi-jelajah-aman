@@ -18,6 +18,8 @@ export interface LaporanUdara {
 export interface WeatherCardProps {
   kota: string;
   suhu: number;
+  suhuMaksimal: number;
+  suhuMinimal: number;
   tingkatAQI: TingkatAQI;
   indeksAQI?: number; // baru: angka asli dari API, opsional
 }

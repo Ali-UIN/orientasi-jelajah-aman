@@ -11,6 +11,8 @@ const warnaPerTingkat: Record<TingkatAQI, string> = {
 export default function WeatherCard({
   kota,
   suhu,
+  suhuMaksimal,
+  suhuMinimal,
   tingkatAQI,
   indeksAQI,
 }: WeatherCardProps) {
@@ -37,6 +39,7 @@ ${tingkatAQI}`
         {kota}
       </Text>
       <Text style={{ fontSize: 32 }}>{suhu}°C</Text>
+      <Text>{suhuMaksimal}°C / {suhuMinimal}°C</Text>
       <Text
         style={{ color: warnaPerTingkat[tingkatAQI], fontSize: typeScale.isi }}
       >
