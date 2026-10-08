@@ -1,21 +1,27 @@
-// app/tambah-favorit.tsx
+// src/app/tambah-favorit.tsx
 import { router, useLocalSearchParams } from "expo-router";
 import { Button, Text, View } from "react-native";
-import { spacing, typeScale } from "../constants/styles";
-
+import { tambahFavorit } from "../services/favoritStorage";
 export default function ModalTambahFavorit() {
-    const { kota } = useLocalSearchParams<{ kota?: string }>();
-
-    return (
-        <View style={{ padding: spacing.sedang, gap: spacing.kecil }}>
-            <Text style={{ fontSize: typeScale.isi }}>
-                Tambahkan {kota ?? "kota ini"} ke daftar favorit?
-            </Text>
-            <Button
-                title="Simpan"
-                onPress={() => router.back()}
-                accessibilityLabel={`Simpan ${kota ?? "kota ini"} ke daftar favorit`}
-            />
-        </View>
-    );
+  const { id, nama, lat, lon } = useLocalSearchParams<{
+    id: string;
+    nama: string;
+    lat: string;
+    lon: string;
+  }>();
+  async function simpan() {
+    await tambahFavorit({
+      id: Number(id),
+      nama,
+      latitude: Number(lat),
+      longitude: Number(lon),
+    });
+    router.back();
+  }
+  return (
+    <View style={{ padding: 16, gap: 16 }}>
+      <Text>Tambahkan {nama} ke daftar favorit?</Text>
+      <Button title="Simpan" onPress={simpan} />
+    </View>
+  );
 }
