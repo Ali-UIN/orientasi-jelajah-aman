@@ -1,6 +1,6 @@
 // src/app/(tabs)/index.tsx
-import { router } from "expo-router";
-import { useEffect, useRef, useState } from "react";
+import { router, useFocusEffect } from "expo-router";
+import { useCallback, useEffect, useRef, useState } from "react";
 import {
   ActivityIndicator,
   Button,
@@ -17,6 +17,7 @@ import WeatherCard from "../../components/WeatherCard";
 import { labelKodeCuaca } from "../../constants/weatherCodes";
 import { useDebounce } from "../../hooks/use-debounce";
 import { ambilKualitasUdara } from "../../services/airQualityService";
+import { ambilSemuaFavorit } from "../../services/favoritStorage";
 import { cariKota } from "../../services/geocodingService";
 import {
   ambilKoordinatSaatIni,
@@ -37,14 +38,33 @@ export default function HalamanUtama() {
   const teksTertunda = useDebounce(teksCari, 500);
   const requestIdRef = useRef(0); // pencegah race condition
   const [pesanLokasi, setPesanLokasi] = useState<string | null>(null);
+  const [idFavorit, setIdFavorit] = useState<number[]>([]);
+  useFocusEffect(
+    useCallback(() => {
+      let masihAktif = true;
+      ambilSemuaFavorit().then((daftar) => {
+        if (masihAktif) setIdFavorit(daftar.map((kota) => kota.id));
+      });
+      return () => {
+        masihAktif = false;
+      };
+    }, []),
+  );
   useEffect(() => {
     if (teksTertunda.trim().length === 0) {
-      setHasilPencarian([]);
       return;
     }
+    let masihAktif = true;
     cariKota(teksTertunda)
-      .then(setHasilPencarian)
-      .catch(() => setHasilPencarian([]));
+      .then((hasil) => {
+        if (masihAktif) setHasilPencarian(hasil);
+      })
+      .catch(() => {
+        if (masihAktif) setHasilPencarian([]);
+      });
+    return () => {
+      masihAktif = false;
+    };
   }, [teksTertunda]);
   async function pilihKota(kota: HasilGeocoding) {
     setKotaTerpilih(kota);
@@ -59,7 +79,7 @@ export default function HalamanUtama() {
       if (idSaatIni !== requestIdRef.current) return; // hasil basi, abaikan
       setCuaca(dataCuaca);
       setKualitasUdara(dataAQI);
-    } catch (err) {
+    } catch {
       if (idSaatIni !== requestIdRef.current) return;
       setPesanError("Gagal memuat data cuaca. Periksa koneksi internet Anda.");
     } finally {
@@ -91,16 +111,19 @@ export default function HalamanUtama() {
       country: "",
     });
   }
+  const sudahFavorit =
+    kotaTerpilih !== null && idFavorit.includes(kotaTerpilih.id);
   return (
     <SafeAreaView style={{ flex: 1, padding: 16, gap: 16 }}>
       <SearchBox onCari={setTeksCari} />
       <Button title="Gunakan Lokasi Saat Ini" onPress={gunakanLokasiSaatIni} />
       {pesanLokasi && <Text>{pesanLokasi}</Text>}
-      {hasilPencarian.map((kota) => (
+      {teksTertunda.trim().length > 0 &&
+        hasilPencarian.map((kota) => (
         <TouchableOpacity key={kota.id} onPress={() => pilihKota(kota)}>
           <Text>{kota.name}</Text>
         </TouchableOpacity>
-      ))}
+        ))}
       {sedangMemuat && <ActivityIndicator />}
       {pesanError && (
         <View>
@@ -121,20 +144,22 @@ export default function HalamanUtama() {
             tingkatAQI={konversiTingkatAQI(kualitasUdara.indeksAQI)}
             indeksAQI={kualitasUdara.indeksAQI}
           />
-          <Button
-            title="Tambahkan ke Favorit"
-            onPress={() =>
-              router.push({
-                pathname: "/tambah-favorit",
-                params: {
-                  id: String(kotaTerpilih.id),
-                  nama: kotaTerpilih.name,
-                  lat: String(kotaTerpilih.latitude),
-                  lon: String(kotaTerpilih.longitude),
-                },
-              })
-            }
-          />
+          {!sudahFavorit && (
+            <Button
+              title="Tambahkan ke Favorit"
+              onPress={() =>
+                router.push({
+                  pathname: "/tambah-favorit",
+                  params: {
+                    id: String(kotaTerpilih.id),
+                    nama: kotaTerpilih.name,
+                    lat: String(kotaTerpilih.latitude),
+                    lon: String(kotaTerpilih.longitude),
+                  },
+                })
+              }
+            />
+          )}
         </>
       )}
       {cuaca && (
