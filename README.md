@@ -54,3 +54,7 @@ Join our community of developers creating universal apps.
 
 - [Expo on GitHub](https://github.com/expo/expo): View our open source platform and contribute.
 - [Discord community](https://chat.expo.dev): Chat with Expo users and ask questions.
+
+## Strategi Cache dan Label Status Data
+
+**Cache-segar** berarti data cuaca masih dalam batas waktu TTL (misalnya 30 menit sejak disimpan) sehingga layak dipakai langsung tanpa meminta ulang ke server — aplikasi menampilkan label "masih segar" agar pengguna tahu data tersebut relatif baru. **Cache-basi** terjadi ketika data sudah melewati batas TTL tetapi masih tersimpan di perangkat; aplikasi akan mencoba memperbarui dari internet, namun jika koneksi gagal, data lama ini tetap ditampilkan dengan label "data dari cache" supaya pengguna sadar bahwa informasi mungkin sudah tidak akurat. **First-run offline** adalah kondisi saat pengguna membuka aplikasi untuk pertama kali tanpa koneksi internet dan sama sekali belum memiliki data tersimpan, sehingga tidak ada yang bisa ditampilkan — aplikasi memberi pesan error yang jelas. Label status data penting bagi pengguna karena memberikan transparansi tentang seberapa segar informasi cuaca yang mereka lihat, sehingga mereka dapat mengambil keputusan yang tepat berdasarkan keandalan data tersebut.
