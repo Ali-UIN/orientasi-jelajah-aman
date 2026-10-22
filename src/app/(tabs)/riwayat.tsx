@@ -55,6 +55,7 @@ export default function TabRiwayat() {
   const [kotaMenungguHapus, setKotaMenungguHapus] =
     useState<KotaFavorit | null>(null);
   const [riwayatCari, setRiwayatCari] = useState<HasilGeocoding[]>([]);
+  const [kotaCache, setKotaCache] = useState<RingkasanKotaTersimpan[]>([]);
   useFocusEffect(
     useCallback(() => {
       ambilSemuaFavorit().then(setDaftarFavorit);

@@ -3,12 +3,9 @@
  * https://docs.expo.dev/guides/color-schemes/
  */
 
-import { Colors } from '@/constants/theme';
-import { useColorScheme } from '@/hooks/use-color-scheme';
+import { useTema } from '@/context/TemaContext';
 
+// Warna mengikuti pilihan tema di Pengaturan (terang / gelap / sistem)
 export function useTheme() {
-  const scheme = useColorScheme();
-  const theme = scheme === 'unspecified' ? 'light' : scheme;
-
-  return Colors[theme];
+  return useTema().warna;
 }

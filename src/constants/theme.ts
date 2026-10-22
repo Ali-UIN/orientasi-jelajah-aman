@@ -14,6 +14,16 @@ export const Colors = {
     backgroundElement: '#F0F0F3',
     backgroundSelected: '#E0E1E6',
     textSecondary: '#60646C',
+    // Warna tambahan Jelajah Aman
+    tint: '#1783e9',
+    border: '#D0D4DA',
+    card: '#F4F7FA',
+    danger: '#DC2626',
+    successBackground: '#EAFBF6',
+    successText: '#13795F',
+    warningBackground: '#FEF3E2',
+    warningText: '#B45309',
+    overlay: 'rgba(15, 23, 42, 0.55)',
   },
   dark: {
     text: '#ffffff',
@@ -21,8 +31,21 @@ export const Colors = {
     backgroundElement: '#212225',
     backgroundSelected: '#2E3135',
     textSecondary: '#B0B4BA',
+    // Warna tambahan Jelajah Aman
+    tint: '#4DA3FF',
+    border: '#3A3D42',
+    card: '#1A1C1F',
+    danger: '#F87171',
+    successBackground: '#0F2E26',
+    successText: '#5EE0B5',
+    warningBackground: '#3A2A10',
+    warningText: '#F5B759',
+    overlay: 'rgba(0, 0, 0, 0.7)',
   },
 } as const;
+
+// Pilihan tema yang bisa dipilih pengguna di menu Pengaturan
+export type PreferensiTema = 'terang' | 'gelap' | 'sistem';
 
 export type ThemeColor = keyof typeof Colors.light & keyof typeof Colors.dark;
 
