@@ -20,7 +20,7 @@ async function bukaDanMigrasi(): Promise<SQLite.SQLiteDatabase> {
 }
 async function migrasiDatabase(db: SQLite.SQLiteDatabase): Promise<void> {
   const baris = await db.getFirstAsync<{ user_version: number }>(
-    "PRAGMAuser_version",
+    "PRAGMA user_version",
   );
   let versiSaatIni = baris?.user_version ?? 0;
   if (versiSaatIni >= VERSI_DATABASE) return;

@@ -1,7 +1,7 @@
 // src/services/weatherService.ts
 import { DataCuacaLengkap } from "../../types/weather";
 const BASE_URL = "https://api.open-meteo.com/v1/forecast";
-const BATAS_WAKTU_MS = 3000;
+const BATAS_WAKTU_MS = 10000; // Open-Meteo bisa >3 detik saat koneksi pertama (TLS ke server luar negeri)
 export async function ambilCuaca(
   latitude: number,
   longitude: number,

@@ -9,7 +9,7 @@ export default function HalamanDetail() {
 
     return (
         <View style={{ padding: spacing.sedang, gap: spacing.sedang }}>
-            <WeatherCard kota={kota} suhu={29} tingkatAQI="BAIK" />
+            <WeatherCard kota={kota} suhu={29} suhuMaksimal={32} suhuMinimal={24} tingkatAQI="BAIK" />
             <Button
                 title="Tambahkan ke Favorit"
                 onPress={() =>

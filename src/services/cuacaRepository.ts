@@ -22,7 +22,10 @@ export async function ambilCuacaOfflineFirst(
   const dariJaringan = await Promise.all([
     ambilCuaca(kota.latitude, kota.longitude),
     ambilKualitasUdara(kota.latitude, kota.longitude),
-  ]).catch(() => null);
+  ]).catch((err) => {
+    console.warn("Gagal mengambil cuaca dari jaringan:", err);
+    return null;
+  });
   // 3. Internet gagal -> pakai cache lama jika ada, kalau tidak: menyerah
   if (!dariJaringan) {
     if (cache) return { ...cache, sumber: "cache-basi" };
