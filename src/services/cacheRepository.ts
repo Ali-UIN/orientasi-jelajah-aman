@@ -2,9 +2,9 @@
 import { DataCuacaLengkap, DataKualitasUdara } from "../../types/weather";
 import { ambilDatabase } from "../db/database";
 import {
-    DataTersimpan,
-    KotaUntukCache,
-    RingkasanKotaTersimpan,
+  DataTersimpan,
+  KotaUntukCache,
+  RingkasanKotaTersimpan,
 } from "../types/cache";
 interface BarisCache {
   kunci: string;
@@ -60,11 +60,14 @@ export async function ambilCache(
     disimpanPada: baris.disimpan_pada,
   };
 }
-export async function daftarKotaTersimpan(): Promise<RingkasanKotaTersimpan[]> {
+export async function daftarKotaTersimpan(
+  batas = 10,
+): Promise<RingkasanKotaTersimpan[]> {
   const db = await ambilDatabase();
   const semua = await db.getAllAsync<BarisRingkasan>(
     `SELECT kunci, kota_id, nama_kota, latitude, longitude, disimpan_pada
-FROM cache_cuaca ORDER BY disimpan_pada DESC LIMIT 5`,
+FROM cache_cuaca ORDER BY disimpan_pada DESC LIMIT ?`,
+    [batas],
   );
   return semua.map((b) => ({
     kunci: b.kunci,
@@ -86,4 +89,9 @@ export async function bersihkanCacheLama(batasUmurMs: number): Promise<void> {
 export async function hapusSemuaCache(): Promise<void> {
   const db = await ambilDatabase();
   await db.runAsync("DELETE FROM cache_cuaca");
+}
+// Invalidation manual per kota: hapus cache satu kota saja
+export async function hapusCacheKota(kunci: string): Promise<void> {
+  const db = await ambilDatabase();
+  await db.runAsync("DELETE FROM cache_cuaca WHERE kunci = ?", [kunci]);
 }

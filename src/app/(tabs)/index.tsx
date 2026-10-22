@@ -1,6 +1,6 @@
 // src/app/(tabs)/index.tsx
-import { router, useLocalSearchParams } from "expo-router";
-import { useEffect, useRef, useState } from "react";
+import { router, useFocusEffect, useLocalSearchParams } from "expo-router";
+import { useCallback, useEffect, useRef, useState } from "react";
 import {
   ActivityIndicator,
   Button,
@@ -61,11 +61,11 @@ export default function HalamanUtama() {
   }
 
   // Saat aplikasi dibuka: buang cache > 7 hari, lalu tampilkan daftar tersimpan
-  useEffect(() => {
+   useFocusEffect(useCallback(() => {
     bersihkanCacheLama(BATAS_CACHE_MS)
       .then(muatKotaTersimpan)
       .catch(() => {});
-  }, []);
+  }, []));
   // Dibuka dari tab Riwayat: isi kotak cari dengan nama kota lalu langsung tampilkan cuacanya
   useEffect(() => {
     if (!t || !cari || !lat || !lon) return;

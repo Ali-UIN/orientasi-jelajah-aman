@@ -15,6 +15,8 @@ import {
 import { SafeAreaView } from "react-native-safe-area-context";
 import { ambilSemuaFavorit, hapusFavorit } from "../../services/favoritStorage";
 import { KotaFavorit } from "../../../types/favorit";
+import { daftarKotaTersimpan, hapusCacheKota } from "../../services/cacheRepository";
+import { RingkasanKotaTersimpan } from "../../types/cache";
 import { HasilGeocoding } from "../../../types/geocoding";
 import {
   ambilRiwayatPencarian,
@@ -35,6 +37,19 @@ function bukaRiwayat(kota: HasilGeocoding) {
   });
 }
 
+// Konfirmasi sebelum menghapus: Alert di HP, window.confirm di browser
+// (Alert.alert tidak menampilkan apa pun di react-native-web)
+function konfirmasiHapus(judul: string, pesan: string, onHapus: () => void) {
+  if (Platform.OS === "web") {
+    if (window.confirm(`${judul}\n\n${pesan}`)) onHapus();
+    return;
+  }
+  Alert.alert(judul, pesan, [
+    { text: "Batal", style: "cancel" },
+    { text: "Hapus", style: "destructive", onPress: onHapus },
+  ]);
+}
+
 export default function TabRiwayat() {
   const [daftarFavorit, setDaftarFavorit] = useState<KotaFavorit[]>([]);
   const [kotaMenungguHapus, setKotaMenungguHapus] =
@@ -44,6 +59,7 @@ export default function TabRiwayat() {
     useCallback(() => {
       ambilSemuaFavorit().then(setDaftarFavorit);
       ambilRiwayatPencarian().then(setRiwayatCari);
+      daftarKotaTersimpan(20).then(setKotaCache).catch(() => {});
     }, []),
   );
   async function hapus(id: number) {
@@ -73,6 +89,16 @@ export default function TabRiwayat() {
   async function bersihkanRiwayat() {
     await hapusSemuaRiwayatPencarian();
     setRiwayatCari([]);
+  }  // Tombol "Hapus Cache" -> minta konfirmasi dulu, baru hapus dari SQLite
+  function hapusCache(kota: RingkasanKotaTersimpan) {
+    konfirmasiHapus(
+      "Hapus data offline?",
+      `Data cuaca ${kota.nama} yang tersimpan di perangkat akan dihapus. Kota ini tidak bisa dibuka saat offline sampai dicari lagi.`,
+      async () => {
+        await hapusCacheKota(kota.kunci);
+        setKotaCache((prev) => prev.filter((k) => k.kunci !== kota.kunci));
+      },
+    );
   }
   return (
     <SafeAreaView style={{ flex: 1, padding: 16, gap: 12 }}>
@@ -117,7 +143,26 @@ export default function TabRiwayat() {
           <Text>{kota.nama}</Text>
           <Button title="Hapus" onPress={() => hapus(kota.id)} />
         </View>
-      ))}  
+      ))}       <Text style={{ fontSize: 18, fontWeight: "bold" }}>Data Offline Tersimpan</Text>
+      {kotaCache.length === 0 && <Text>Belum ada data cuaca tersimpan</Text>}
+      {kotaCache.map((kota) => (
+        <View
+          key={kota.kunci}
+          style={{
+            flexDirection: "row",
+            justifyContent: "space-between",
+            alignItems: "center",
+          }}
+        >
+          <Text>💾 {kota.nama}</Text>
+          <Button
+            title="Hapus Cache"
+            color="#DC2626"
+            onPress={() => hapusCache(kota)}
+            accessibilityLabel={`Hapus data offline ${kota.nama}`}
+          />
+        </View>
+      ))}
       </ScrollView>
         <Modal
           visible={kotaMenungguHapus !== null}
