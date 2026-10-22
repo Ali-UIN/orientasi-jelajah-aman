@@ -1,4 +1,5 @@
 // src/app/(tabs)/index.tsx
+import Ionicons from "@expo/vector-icons/Ionicons";
 import { router, useFocusEffect, useLocalSearchParams } from "expo-router";
 import { useCallback, useEffect, useRef, useState } from "react";
 import {
@@ -16,6 +17,7 @@ import SearchBox from "../../components/SearchBox";
 import StatusData from "../../components/StatusData";
 import WeatherCard from "../../components/WeatherCard";
 import { labelKodeCuaca } from "../../constants/weatherCodes";
+import { useTema } from "../../context/TemaContext";
 import { useDebounce } from "../../hooks/use-debounce";
 import {
   bersihkanCacheLama,
@@ -35,6 +37,7 @@ import { konversiTingkatAQI } from "../../services/weatherAdapter";
 import { HasilCuacaOffline, RingkasanKotaTersimpan } from "../../types/cache";
 
 export default function HalamanUtama() {
+  const { warna } = useTema();
   const [teksCari, setTeksCari] = useState("");
   const [hasilPencarian, setHasilPencarian] = useState<HasilGeocoding[]>([]);
   const [kotaTerpilih, setKotaTerpilih] = useState<HasilGeocoding | null>(null);
@@ -47,7 +50,7 @@ export default function HalamanUtama() {
   const [pesanLokasi, setPesanLokasi] = useState<string | null>(null);
   const teksTertunda = useDebounce(teksCari, 500);
   const requestIdRef = useRef(0); // pencegah race condition
-    // Parameter yang dikirim tab Riwayat saat salah satu riwayat diklik
+  // Parameter yang dikirim tab Riwayat saat salah satu riwayat diklik
   const { cari, id, lat, lon, negara, t } = useLocalSearchParams<{
     cari?: string;
     id?: string;
@@ -60,8 +63,8 @@ export default function HalamanUtama() {
     setKotaTersimpan(await daftarKotaTersimpan());
   }
 
-  // Saat aplikasi dibuka: buang cache > 7 hari, lalu tampilkan daftar tersimpan
-   useFocusEffect(useCallback(() => {
+  // Setiap Beranda dibuka: buang cache > 7 hari, lalu tampilkan daftar tersimpan terbaru
+  useFocusEffect(useCallback(() => {
     bersihkanCacheLama(BATAS_CACHE_MS)
       .then(muatKotaTersimpan)
       .catch(() => {});
@@ -85,10 +88,7 @@ export default function HalamanUtama() {
   }, [t, cari, id, lat, lon, negara]);
 
   useEffect(() => {
-    if (teksTertunda.trim().length === 0) {
-      setHasilPencarian([]);
-      return;
-    }
+    if (teksTertunda.trim().length === 0) return; // kotak kosong: daftar disembunyikan lewat hasilTampil
     cariKota(teksTertunda)
       .then(setHasilPencarian)
       .catch(() => setHasilPencarian([]));
@@ -112,7 +112,7 @@ export default function HalamanUtama() {
       if (idSaatIni !== requestIdRef.current) return; // hasil basi, abaikan
       setHasil(data);
       muatKotaTersimpan();
-    } catch (err) {
+    } catch {
       if (idSaatIni !== requestIdRef.current) return;
       setHasil(null);
       setPesanError(
@@ -153,8 +153,11 @@ export default function HalamanUtama() {
     });
   }
 
+  // Kotak cari kosong -> daftar hasil disembunyikan (tanpa setState di dalam effect)
+  const hasilTampil = teksTertunda.trim().length === 0 ? [] : hasilPencarian;
+
   return (
-    <SafeAreaView style={{ flex: 1 }}>
+    <SafeAreaView style={{ flex: 1, backgroundColor: warna.background }}>
       <ScrollView
         contentContainerStyle={{ padding: 16, gap: 16 }}
         keyboardShouldPersistTaps="handled"
@@ -162,27 +165,48 @@ export default function HalamanUtama() {
         <SearchBox nilai={teksCari} onCari={setTeksCari} />
         <Button
           title="Gunakan Lokasi Saat Ini"
+          color={warna.tint}
           onPress={gunakanLokasiSaatIni}
         />
         {pesanLokasi && (
-          <Text accessibilityLabel={pesanLokasi}>{pesanLokasi}</Text>
+          <Text accessibilityLabel={pesanLokasi} style={{ color: warna.warningText }}>
+            {pesanLokasi}
+          </Text>
         )}
-        {hasilPencarian.map((kota) => (
-          <TouchableOpacity
-            key={kota.id}
-            onPress={() => pilihDariPencarian(kota)}
+        {hasilTampil.length > 0 && (
+          <View
+            style={{
+              borderWidth: 1,
+              borderColor: warna.border,
+              borderRadius: 8,
+              backgroundColor: warna.card,
+            }}
           >
-            <Text>{kota.name}</Text>
-          </TouchableOpacity>
-        ))}
+            {hasilTampil.map((kota) => (
+              <TouchableOpacity
+                key={kota.id}
+                onPress={() => pilihDariPencarian(kota)}
+                accessibilityLabel={`Pilih ${kota.name}`}
+                style={{ flexDirection: "row", alignItems: "center", gap: 8, padding: 10 }}
+              >
+                <Ionicons name="location-outline" size={18} color={warna.tint} />
+                <Text style={{ flex: 1, color: warna.text }}>
+                  {kota.name}
+                  {kota.admin1 ? `, ${kota.admin1}` : ""}
+                </Text>
+              </TouchableOpacity>
+            ))}
+          </View>
+        )}
         {kotaTersimpan.length > 0 && (
           <View style={{ gap: 6 }}>
-            <Text style={{ fontWeight: "bold" }}>
+            <Text style={{ fontWeight: "bold", color: warna.text }}>
               Tersimpan di perangkat (bisa dibuka offline)
             </Text>
             {kotaTersimpan.map((k) => (
               <TouchableOpacity
                 key={k.kunci}
+                style={{ flexDirection: "row", alignItems: "center", gap: 8 }}
                 onPress={() =>
                   pilihKota({
                     id: k.id,
@@ -193,17 +217,21 @@ export default function HalamanUtama() {
                   })
                 }
               >
-                <Text>{k.nama}</Text>
+                <Ionicons name="cloud-done-outline" size={16} color={warna.textSecondary} />
+                <Text style={{ color: warna.text }}>{k.nama}</Text>
               </TouchableOpacity>
             ))}
           </View>
         )}
-        {sedangMemuat && <ActivityIndicator />}
+        {sedangMemuat && <ActivityIndicator color={warna.tint} />}
         {pesanError && (
-          <View>
-            <Text accessibilityLabel={pesanError}>{pesanError}</Text>
+          <View style={{ gap: 8 }}>
+            <Text accessibilityLabel={pesanError} style={{ color: warna.danger }}>
+              {pesanError}
+            </Text>
             <Button
               title="Coba Lagi"
+              color={warna.tint}
               onPress={() => kotaTerpilih && pilihKota(kotaTerpilih, true)}
             />
           </View>
@@ -221,16 +249,18 @@ export default function HalamanUtama() {
               suhuMinimal={hasil.cuaca.harian.suhuMinimal[0]}
               tingkatAQI={konversiTingkatAQI(hasil.kualitasUdara.indeksAQI)}
             />
-            <Text style={{ fontSize: 12, color: "#888888" }}>
+            <Text style={{ fontSize: 12, color: warna.textSecondary }}>
               Kondisi: {labelKodeCuaca(hasil.cuaca.saatIni.kodeCuaca)}{" "}
               {"\u2022"} Angin {hasil.cuaca.saatIni.kecepatanAngin} km/j
             </Text>
             <Button
               title="Perbarui Sekarang"
+              color={warna.tint}
               onPress={() => pilihKota(kotaTerpilih, true)}
             />
             <Button
               title="Tambahkan ke Favorit"
+              color={warna.tint}
               onPress={() =>
                 router.push({
                   pathname: "/tambah-favorit",

@@ -1,10 +1,12 @@
 // app/(tabs)/_layout.tsx
 import Ionicons from '@expo/vector-icons/Ionicons';
 import { Tabs } from 'expo-router';
+import { useTema } from '../../context/TemaContext';
 
 export default function Layout() {
+    const { warna } = useTema(); // warna tab aktif/nonaktif ikut tema
     return (
-        <Tabs screenOptions={{ headerShown: true, tabBarActiveTintColor: '#1783e9', tabBarInactiveTintColor: '#8E8E93' }}>
+        <Tabs screenOptions={{ headerShown: true, tabBarActiveTintColor: warna.tint, tabBarInactiveTintColor: warna.textSecondary }}>
             <Tabs.Screen
                 name="index"
                 options={{

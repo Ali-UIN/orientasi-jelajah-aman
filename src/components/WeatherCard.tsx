@@ -2,11 +2,13 @@
 import { Text, View } from "react-native";
 import { TingkatAQI, WeatherCardProps } from "../../types/cuaca";
 import { spacing, typeScale } from "../constants/styles";
+import { useTema } from "../context/TemaContext";
+// Warna dipilih agar tetap terbaca di tema terang maupun gelap
 const warnaPerTingkat: Record<TingkatAQI, string> = {
-  BAIK: "green",
-  SEDANG: "goldenrod",
-  TIDAK_SEHAT: "orange",
-  BERBAHAYA: "crimson",
+  BAIK: "#16A34A",
+  SEDANG: "#CA8A04",
+  TIDAK_SEHAT: "#EA580C",
+  BERBAHAYA: "#DC2626",
 };
 export default function WeatherCard({
   kota,
@@ -16,6 +18,7 @@ export default function WeatherCard({
   tingkatAQI,
   indeksAQI,
 }: WeatherCardProps) {
+  const { warna } = useTema();
   const teksAQI =
     indeksAQI !== undefined
       ? `AQI: ${indeksAQI} (${tingkatAQI})`
@@ -31,17 +34,21 @@ ${tingkatAQI}`
       accessibilityLabel={labelAksesibilitas}
       style={{
         padding: spacing.sedang,
-        borderRadius: 8,
-        backgroundColor: "#F4F7FA",
+        borderRadius: 12,
+        borderWidth: 1,
+        borderColor: warna.border,
+        backgroundColor: warna.card,
       }}
     >
-      <Text style={{ fontWeight: "bold", fontSize: typeScale.judul }}>
+      <Text style={{ fontWeight: "bold", fontSize: typeScale.judul, color: warna.text }}>
         {kota}
       </Text>
-      <Text style={{ fontSize: 32 }}>{suhu}°C</Text>
-      <Text>{suhuMaksimal}°C / {suhuMinimal}°C</Text>
+      <Text style={{ fontSize: 32, color: warna.text }}>{suhu}°C</Text>
+      <Text style={{ color: warna.textSecondary }}>
+        {suhuMaksimal}°C / {suhuMinimal}°C
+      </Text>
       <Text
-        style={{ color: warnaPerTingkat[tingkatAQI], fontSize: typeScale.isi }}
+        style={{ color: warnaPerTingkat[tingkatAQI], fontSize: typeScale.isi, fontWeight: "bold" }}
       >
         {teksAQI}
       </Text>
