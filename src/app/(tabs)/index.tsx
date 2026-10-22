@@ -1,5 +1,5 @@
 // src/app/(tabs)/index.tsx
-import { router } from "expo-router";
+import { router, useLocalSearchParams } from "expo-router";
 import { useEffect, useRef, useState } from "react";
 import {
   ActivityIndicator,
@@ -17,7 +17,6 @@ import StatusData from "../../components/StatusData";
 import WeatherCard from "../../components/WeatherCard";
 import { labelKodeCuaca } from "../../constants/weatherCodes";
 import { useDebounce } from "../../hooks/use-debounce";
-import { tambahRiwayatPencarian } from "../../services/riwayatPencarianStorage";
 import {
   bersihkanCacheLama,
   daftarKotaTersimpan,
@@ -31,6 +30,7 @@ import {
   ambilKoordinatSaatIni,
   mintaIzinLokasi,
 } from "../../services/locationService";
+import { tambahRiwayatPencarian } from "../../services/riwayatPencarianStorage";
 import { konversiTingkatAQI } from "../../services/weatherAdapter";
 import { HasilCuacaOffline, RingkasanKotaTersimpan } from "../../types/cache";
 
@@ -47,7 +47,15 @@ export default function HalamanUtama() {
   const [pesanLokasi, setPesanLokasi] = useState<string | null>(null);
   const teksTertunda = useDebounce(teksCari, 500);
   const requestIdRef = useRef(0); // pencegah race condition
-
+    // Parameter yang dikirim tab Riwayat saat salah satu riwayat diklik
+  const { cari, id, lat, lon, negara, t } = useLocalSearchParams<{
+    cari?: string;
+    id?: string;
+    lat?: string;
+    lon?: string;
+    negara?: string;
+    t?: string;
+  }>();
   async function muatKotaTersimpan() {
     setKotaTersimpan(await daftarKotaTersimpan());
   }
@@ -58,6 +66,23 @@ export default function HalamanUtama() {
       .then(muatKotaTersimpan)
       .catch(() => {});
   }, []);
+  // Dibuka dari tab Riwayat: isi kotak cari dengan nama kota lalu langsung tampilkan cuacanya
+  useEffect(() => {
+    if (!t || !cari || !lat || !lon) return;
+    const kota: HasilGeocoding = {
+      id: Number(id),
+      name: cari,
+      latitude: Number(lat),
+      longitude: Number(lon),
+      country: negara ?? "",
+    };
+    // naikkan kota ini ke urutan teratas riwayat, apa pun hasilnya tetap tampilkan cuacanya
+    tambahRiwayatPencarian(kota).finally(() => {
+      setTeksCari(kota.name);
+      pilihKota(kota);
+    });
+    // eslint-disable-next-line react-hooks/exhaustive-deps -- sengaja: hanya jalan saat parameter riwayat berubah
+  }, [t, cari, id, lat, lon, negara]);
 
   useEffect(() => {
     if (teksTertunda.trim().length === 0) {
@@ -97,7 +122,7 @@ export default function HalamanUtama() {
       if (idSaatIni === requestIdRef.current) setSedangMemuat(false);
     }
   }
-  
+
   // Kota dipilih dari hasil pencarian -> catat ke riwayat (maks 10) lalu tampilkan cuacanya
   function pilihDariPencarian(kota: HasilGeocoding) {
     tambahRiwayatPencarian(kota).catch(() => {});
