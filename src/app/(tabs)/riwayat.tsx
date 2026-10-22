@@ -1,27 +1,24 @@
 // src/app/(tabs)/riwayat.tsx
+import Ionicons from "@expo/vector-icons/Ionicons";
 import { router, useFocusEffect } from "expo-router";
-import { useCallback, useState } from "react";
-import {
-  Alert,
-  Button,
-  Modal,
-  Platform,
-  Pressable,
-  ScrollView,
-  Text,
-  TouchableOpacity,
-  View,
-} from "react-native";
+import { ComponentProps, ReactNode, useCallback, useState } from "react";
+import { Pressable, ScrollView, Text, View } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
-import { ambilSemuaFavorit, hapusFavorit } from "../../services/favoritStorage";
 import { KotaFavorit } from "../../../types/favorit";
-import { daftarKotaTersimpan, hapusCacheKota } from "../../services/cacheRepository";
-import { RingkasanKotaTersimpan } from "../../types/cache";
 import { HasilGeocoding } from "../../../types/geocoding";
+import TombolHapus from "../../components/TombolHapus";
+import { useTema } from "../../context/TemaContext";
+import { daftarKotaTersimpan, hapusCacheKota } from "../../services/cacheRepository";
+import { ambilSemuaFavorit, hapusFavorit } from "../../services/favoritStorage";
 import {
   ambilRiwayatPencarian,
   hapusSemuaRiwayatPencarian,
 } from "../../services/riwayatPencarianStorage";
+import { RingkasanKotaTersimpan } from "../../types/cache";
+import { konfirmasiHapus } from "../../utils/konfirmasi";
+
+type NamaIkon = ComponentProps<typeof Ionicons>["name"];
+
 // Klik riwayat -> pindah ke tab Beranda dan otomatis mencari kota tersebut
 function bukaRiwayat(kota: HasilGeocoding) {
   router.navigate({
@@ -37,25 +34,68 @@ function bukaRiwayat(kota: HasilGeocoding) {
   });
 }
 
-// Konfirmasi sebelum menghapus: Alert di HP, window.confirm di browser
-// (Alert.alert tidak menampilkan apa pun di react-native-web)
-function konfirmasiHapus(judul: string, pesan: string, onHapus: () => void) {
-  if (Platform.OS === "web") {
-    if (window.confirm(`${judul}\n\n${pesan}`)) onHapus();
-    return;
-  }
-  Alert.alert(judul, pesan, [
-    { text: "Batal", style: "cancel" },
-    { text: "Hapus", style: "destructive", onPress: onHapus },
-  ]);
+// Judul tiap bagian: ikon + teks, dengan tombol aksi opsional di kanan
+function JudulBagian({ ikon, judul, aksi }: { ikon: NamaIkon; judul: string; aksi?: ReactNode }) {
+  const { warna } = useTema();
+  return (
+    <View style={{ flexDirection: "row", alignItems: "center", gap: 8, marginTop: 8 }}>
+      <Ionicons name={ikon} size={20} color={warna.tint} />
+      <Text style={{ flex: 1, fontSize: 18, fontWeight: "bold", color: warna.text }}>{judul}</Text>
+      {aksi}
+    </View>
+  );
+}
+
+// Satu baris kota: ikon, nama, keterangan, dan tombol di kanan
+function BarisKota({
+  ikon,
+  nama,
+  keterangan,
+  kanan,
+}: {
+  ikon: NamaIkon;
+  nama: string;
+  keterangan?: string;
+  kanan?: ReactNode;
+}) {
+  const { warna } = useTema();
+  return (
+    <View
+      style={{
+        flexDirection: "row",
+        alignItems: "center",
+        gap: 12,
+        padding: 12,
+        borderRadius: 12,
+        borderWidth: 1,
+        borderColor: warna.border,
+        backgroundColor: warna.card,
+      }}
+    >
+      <Ionicons name={ikon} size={22} color={warna.textSecondary} />
+      <View style={{ flex: 1 }}>
+        <Text style={{ fontSize: 15, fontWeight: "600", color: warna.text }}>{nama}</Text>
+        {keterangan ? (
+          <Text style={{ fontSize: 12, color: warna.textSecondary }}>{keterangan}</Text>
+        ) : null}
+      </View>
+      {kanan}
+    </View>
+  );
+}
+
+function TeksKosong({ children }: { children: string }) {
+  const { warna } = useTema();
+  return <Text style={{ color: warna.textSecondary }}>{children}</Text>;
 }
 
 export default function TabRiwayat() {
+  const { warna } = useTema();
   const [daftarFavorit, setDaftarFavorit] = useState<KotaFavorit[]>([]);
-  const [kotaMenungguHapus, setKotaMenungguHapus] =
-    useState<KotaFavorit | null>(null);
   const [riwayatCari, setRiwayatCari] = useState<HasilGeocoding[]>([]);
   const [kotaCache, setKotaCache] = useState<RingkasanKotaTersimpan[]>([]);
+
+  // Setiap tab dibuka: muat ulang ketiga daftar agar selalu terbaru
   useFocusEffect(
     useCallback(() => {
       ambilSemuaFavorit().then(setDaftarFavorit);
@@ -63,34 +103,22 @@ export default function TabRiwayat() {
       daftarKotaTersimpan(20).then(setKotaCache).catch(() => {});
     }, []),
   );
-  async function hapus(id: number) {
-    const kota = daftarFavorit.find((item) => item.id === id);
-    if (!kota) return;
 
-    const pesanKonfirmasi = `Yakin hapus ${kota.nama}?`;
-    const hapusKota = async () => {
-      await hapusFavorit(id);
-      setDaftarFavorit((prev) => prev.filter((k) => k.id !== id));
-    };
-
-    if (Platform.OS === "web") {
-      setKotaMenungguHapus(kota);
-      return;
-    }
-
-    Alert.alert("Konfirmasi hapus", pesanKonfirmasi, [
-      { text: "Batal", style: "cancel" },
-      {
-        text: "Hapus",
-        style: "destructive",
-        onPress: hapusKota,
-      },
-    ]);
+  function bersihkanRiwayat() {
+    konfirmasiHapus("Hapus riwayat pencarian?", "Semua riwayat pencarian akan dihapus.", async () => {
+      await hapusSemuaRiwayatPencarian();
+      setRiwayatCari([]);
+    });
   }
-  async function bersihkanRiwayat() {
-    await hapusSemuaRiwayatPencarian();
-    setRiwayatCari([]);
-  }  // Tombol "Hapus Cache" -> minta konfirmasi dulu, baru hapus dari SQLite
+
+  function hapusKotaFavorit(kota: KotaFavorit) {
+    konfirmasiHapus("Hapus kota favorit?", `Yakin hapus ${kota.nama} dari favorit?`, async () => {
+      await hapusFavorit(kota.id);
+      setDaftarFavorit((prev) => prev.filter((k) => k.id !== kota.id));
+    });
+  }
+
+  // Tombol "Hapus Cache" -> minta konfirmasi dulu, baru hapus dari SQLite
   function hapusCache(kota: RingkasanKotaTersimpan) {
     konfirmasiHapus(
       "Hapus data offline?",
@@ -101,163 +129,79 @@ export default function TabRiwayat() {
       },
     );
   }
+
   return (
-    <SafeAreaView style={{ flex: 1, padding: 16, gap: 12 }}>
-    <ScrollView contentContainerStyle={{ gap: 12 }}>
-      <View
-        style={{
-          flexDirection: "row",
-          justifyContent: "space-between",
-          alignItems: "center",
-        }}
-      >
-        <Text style={{ fontSize: 18, fontWeight: "bold" }}>Pencarian Terakhir</Text>
-        {riwayatCari.length > 0 && (
-          <Button title="Bersihkan" onPress={bersihkanRiwayat} />
-        )}
-      </View>
-      {riwayatCari.length === 0 && <Text>Belum ada riwayat pencarian</Text>}
-      {riwayatCari.map((kota) => (
-        <TouchableOpacity
-          key={kota.id}
-          onPress={() => bukaRiwayat(kota)}
-          accessibilityLabel={`Cari ulang cuaca ${kota.name}`}
-        >
-          <Text>
-            🕘 {kota.name}
-            {kota.country ? `, ${kota.country}` : ""}
-          </Text>
-        </TouchableOpacity>
-      ))}
-      <Text style={{ fontSize: 18, fontWeight: "bold" }}>Kota Favorit</Text>
-      <Text>Tersimpan {daftarFavorit.length} kota</Text>
-      {daftarFavorit.length === 0 && <Text>Belum ada kota favorit</Text>}
-      {daftarFavorit.map((kota) => (
-        <View
-          key={kota.id}
-          style={{
-            flexDirection: "row",
-            justifyContent: "space-between",
-            alignItems: "center",
-          }}
-        >
-          <Text>{kota.nama}</Text>
-          <Button title="Hapus" onPress={() => hapus(kota.id)} />
-        </View>
-      ))}       <Text style={{ fontSize: 18, fontWeight: "bold" }}>Data Offline Tersimpan</Text>
-      {kotaCache.length === 0 && <Text>Belum ada data cuaca tersimpan</Text>}
-      {kotaCache.map((kota) => (
-        <View
-          key={kota.kunci}
-          style={{
-            flexDirection: "row",
-            justifyContent: "space-between",
-            alignItems: "center",
-          }}
-        >
-          <Text>💾 {kota.nama}</Text>
-          <Button
-            title="Hapus Cache"
-            color="#DC2626"
-            onPress={() => hapusCache(kota)}
-            accessibilityLabel={`Hapus data offline ${kota.nama}`}
-          />
-        </View>
-      ))}
-      </ScrollView>
-        <Modal
-          visible={kotaMenungguHapus !== null}
-          transparent
-          animationType="fade"
-          onRequestClose={() => setKotaMenungguHapus(null)}
-        >
-            
-          <View
-            style={{
-              flex: 1,
-              justifyContent: "center",
-              alignItems: "center",
-              padding: 24,
-              backgroundColor: "rgba(15, 23, 42, 0.55)",
-            }}
+    <SafeAreaView style={{ flex: 1, backgroundColor: warna.background }}>
+      <ScrollView contentContainerStyle={{ padding: 16, gap: 10 }}>
+        {/* 1. Riwayat pencarian (maks 10) */}
+        <JudulBagian
+          ikon="time-outline"
+          judul="Pencarian Terakhir"
+          aksi={
+            riwayatCari.length > 0 ? (
+              <TombolHapus
+                label="Hapus Semua"
+                onPress={bersihkanRiwayat}
+                accessibilityLabel="Hapus semua riwayat pencarian"
+              />
+            ) : null
+          }
+        />
+        {riwayatCari.length === 0 && <TeksKosong>Belum ada riwayat pencarian</TeksKosong>}
+        {riwayatCari.map((kota) => (
+          <Pressable
+            key={kota.id}
+            onPress={() => bukaRiwayat(kota)}
+            accessibilityRole="button"
+            accessibilityLabel={`Cari ulang cuaca ${kota.name}`}
+            style={({ pressed }) => ({ opacity: pressed ? 0.6 : 1 })}
           >
-            <View
-              style={{
-                width: "100%",
-                maxWidth: 380,
-                borderRadius: 20,
-                padding: 24,
-                backgroundColor: "white",
-                shadowColor: "#000",
-                shadowOpacity: 0.2,
-                shadowRadius: 12,
-                elevation: 8,
-              }}
-            >
-              <Text style={{ fontSize: 28, textAlign: "center" }}>⚠️</Text>
-              <Text
-                style={{
-                  marginTop: 8,
-                  fontSize: 20,
-                  fontWeight: "bold",
-                  textAlign: "center",
-                  color: "#172033",
-                }}
-              >
-                Hapus kota favorit?
-              </Text>
-              <Text
-                style={{
-                  marginTop: 8,
-                  marginBottom: 24,
-                  fontSize: 15,
-                  textAlign: "center",
-                  color: "#64748B",
-                }}
-              >
-                Yakin hapus {kotaMenungguHapus?.nama}?
-              </Text>
-              <View style={{ flexDirection: "row", gap: 12 }}>
-                <Pressable
-                  onPress={() => setKotaMenungguHapus(null)}
-                  style={{
-                    flex: 1,
-                    alignItems: "center",
-                    borderRadius: 10,
-                    paddingVertical: 12,
-                    backgroundColor: "#E2E8F0",
-                  }}
-                >
-                  <Text style={{ fontWeight: "bold", color: "#334155" }}>
-                    Batal
-                  </Text>
-                </Pressable>
-                <Pressable
-                  onPress={async () => {
-                    if (kotaMenungguHapus) {
-                      await hapusFavorit(kotaMenungguHapus.id);
-                      setDaftarFavorit((prev) =>
-                        prev.filter((k) => k.id !== kotaMenungguHapus.id),
-                      );
-                    }
-                    setKotaMenungguHapus(null);
-                  }}
-                  style={{
-                    flex: 1,
-                    alignItems: "center",
-                    borderRadius: 10,
-                    paddingVertical: 12,
-                    backgroundColor: "#DC2626",
-                  }}
-                >
-                  <Text style={{ fontWeight: "bold", color: "white" }}>
-                    Hapus
-                  </Text>
-                </Pressable>
-              </View>
-            </View>
-          </View>
-        </Modal>
+            <BarisKota
+              ikon="search-outline"
+              nama={kota.name}
+              keterangan={kota.country}
+              kanan={<Ionicons name="chevron-forward" size={20} color={warna.textSecondary} />}
+            />
+          </Pressable>
+        ))}
+
+        {/* 2. Kota favorit */}
+        <JudulBagian ikon="star-outline" judul={`Kota Favorit (${daftarFavorit.length})`} />
+        {daftarFavorit.length === 0 && <TeksKosong>Belum ada kota favorit</TeksKosong>}
+        {daftarFavorit.map((kota) => (
+          <BarisKota
+            key={kota.id}
+            ikon="star"
+            nama={kota.nama}
+            kanan={
+              <TombolHapus
+                label="Hapus"
+                onPress={() => hapusKotaFavorit(kota)}
+                accessibilityLabel={`Hapus ${kota.nama} dari favorit`}
+              />
+            }
+          />
+        ))}
+
+        {/* 3. Cache offline (SQLite) */}
+        <JudulBagian ikon="save-outline" judul="Data Offline Tersimpan" />
+        {kotaCache.length === 0 && <TeksKosong>Belum ada data cuaca tersimpan</TeksKosong>}
+        {kotaCache.map((kota) => (
+          <BarisKota
+            key={kota.kunci}
+            ikon="cloud-done-outline"
+            nama={kota.nama}
+            keterangan="Bisa dibuka saat offline"
+            kanan={
+              <TombolHapus
+                label="Hapus Cache"
+                onPress={() => hapusCache(kota)}
+                accessibilityLabel={`Hapus data offline ${kota.nama}`}
+              />
+            }
+          />
+        ))}
+      </ScrollView>
     </SafeAreaView>
   );
 }
